@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -13,58 +8,50 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  username  String   @unique
-  clerkId   String   @unique
-  name      String?
-  bio       String?
-  image     String?
-  location  String?
-  website   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  //Relations
-  posts    Post[]
-  comments Comment[]
-  like     Like[]
-
-  followers Follows[] @relation("following") //users who follow this user
-  following Follows[] @relation("followers") //users this user follows
-
-  notifications        Notification[] @relation("userNotifications") //notifs received by user
-  notificationsCreated Notification[] @relation("notificationCreator") //notifs triggered by user
+  id                   String         @id @default(cuid())
+  email                String         @unique
+  username             String         @unique
+  clerkId              String         @unique
+  name                 String?
+  bio                  String?
+  image                String?
+  location             String?
+  website              String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  comments             Comment[]
+  following            Follows[]      @relation("followers")
+  followers            Follows[]      @relation("following")
+  like                 Like[]
+  notificationsCreated Notification[] @relation("notificationCreator")
+  notifications        Notification[] @relation("userNotifications")
+  posts                Post[]
 }
 
 model Post {
-  id        String   @id @default(cuid())
-  authorId  String
-  content   String?
-  image     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade) // cascade delete means delete all posts if author is deleted
+  id            String         @id @default(cuid())
+  authorId      String
+  content       String?
+  image         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   comments      Comment[]
   likes         Like[]
   notifications Notification[]
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  content   String
-  authorId  String
-  postId    String
-  createdAt DateTime @default(now())
-
-  // Relations
+  id            String         @id @default(cuid())
+  content       String
+  authorId      String
+  postId        String
+  createdAt     DateTime       @default(now())
   author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   post          Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
   notifications Notification[]
 
-  @@index([authorId, postId]) // composite index for faster queries
+  @@index([authorId, postId])
 }
 
 model Like {
@@ -72,23 +59,19 @@ model Like {
   postId    String
   userId    String
   createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId]) // this prevents same user liking post twice
-  @@index([userId, postId]) // composite index for faster queries
+  @@unique([userId, postId])
+  @@index([userId, postId])
 }
 
 model Follows {
   followerId  String
   followingId String
   createdAt   DateTime @default(now())
-
-  // Relations
-  follower  User @relation("followers", fields: [followerId], references: [id], onDelete: Cascade)
-  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  follower    User     @relation("followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followingId])
   @@index([followerId, followingId])
@@ -103,12 +86,10 @@ model Notification {
   postId    String?
   commentId String?
   createdAt DateTime         @default(now())
-
-  // Relations
-  user    User     @relation("userNotifications", fields: [userId], references: [id], onDelete: Cascade)
-  creator User     @relation("notificationCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  comment   Comment?         @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  creator   User             @relation("notificationCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  post      Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User             @relation("userNotifications", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }
