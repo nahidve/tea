@@ -70,7 +70,7 @@ export async function getUserByClerkId(clerkId: string) {
 
 export async function getDbUserId() {
   const { userId: clerkId } = await auth();
-  if (!clerkId) throw new Error("Unauthorized");
+  if (!clerkId) return null;
 
   const user = await getUserByClerkId(clerkId);
 
@@ -112,6 +112,7 @@ export async function getRandomUsers() {
           },
         },
       },
+      // get 3 random users
       take: 3,
     });
 
@@ -150,7 +151,7 @@ export async function toggleFollow(targetUserId: string) {
         },
       });
     } else {
-      // follow
+      // follow transaction all or nothing (create a notification for follow and a follow record)
       await prisma.$transaction([
         prisma.follows.create({
           data: {
