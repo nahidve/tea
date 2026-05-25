@@ -152,7 +152,7 @@ export async function createComment(postId: string, content: string) {
       where: { id: postId },
       select: { authorId: true },
     });
-
+ 
     if (!post) throw new Error("Post not found");
 
     // Create comment and notification in a transaction
