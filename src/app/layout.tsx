@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Host_Grotesk, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import PageTransition from "@/components/PageTransition";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const hostGrotesk = Host_Grotesk({
+  variable: "--font-host-grotesk",
   subsets: ["latin"],
 });
 
@@ -32,7 +33,7 @@ export default function RootLayout({
       <html
         lang="en"
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+        className={`${hostGrotesk.variable} ${geistMono.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col">
           <ThemeProvider
@@ -49,7 +50,9 @@ export default function RootLayout({
                     <div className="hidden lg:block lg:col-span-3">
                       <Sidebar />
                     </div>
-                    <div className="lg:col-span-9">{children}</div>
+                    <div className="lg:col-span-9">
+                      <PageTransition>{children}</PageTransition>
+                    </div>
                   </div>
                 </div>
               </main>
