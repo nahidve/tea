@@ -136,7 +136,7 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
           </div>
 
           {/* POST IMAGES */}
-          <PostRenderer post={post} />
+          <PostRenderer post={post} dbUserId={dbUserId} />
 
           {/* LIKE & COMMENT BUTTONS */}
           <div className="flex items-center pt-2 space-x-2 border-t border-border/20">

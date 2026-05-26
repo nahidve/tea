@@ -25,13 +25,36 @@ function CreatePost() {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
+  const [postType, setPostType] = useState<"TEXT" | "IMAGE" | "GIF" | "POLL">(
+    "TEXT",
+  );
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+
+  const updateOption = (value: string, index: number) => {
+    setPollOptions((prev) => prev.map((opt, i) => (i === index ? value : opt)));
+  };
 
   const handleSubmit = async () => {
-    if (!content.trim() && imageUrls.length === 0 && !selectedGif) return;
-
-    setIsPosting(true);
+    if (
+      !content.trim() &&
+      imageUrls.length === 0 &&
+      !selectedGif &&
+      postType !== "POLL"
+    )
+      setIsPosting(true);
     try {
-      const result = await createPost(content, imageUrls, selectedGif);
+      const result = await createPost(
+        content,
+        imageUrls,
+        selectedGif,
+        postType === "POLL"
+          ? {
+              question: pollQuestion,
+              options: pollOptions.filter(Boolean),
+            }
+          : null,
+      );
       if (result?.success) {
         // reset the form
         setContent("");
@@ -116,8 +139,40 @@ function CreatePost() {
             </div>
           )}
 
+          {postType === "POLL" && (
+            <div className="space-y-2 border border-border/30 rounded-md p-3 bg-secondary/10">
+              <input
+                value={pollQuestion}
+                onChange={(e) => setPollQuestion(e.target.value)}
+                placeholder="Ask a question..."
+                className="w-full bg-transparent border-b border-border/30 outline-none text-sm pb-2"
+              />
+
+              {pollOptions.map((opt, idx) => (
+                <input
+                  key={idx}
+                  value={opt}
+                  onChange={(e) => updateOption(e.target.value, idx)}
+                  placeholder={`Option ${idx + 1}`}
+                  className="w-full bg-transparent border border-border/20 rounded-md px-2 py-1 text-sm"
+                />
+              ))}
+
+              {pollOptions.length < 4 && (
+                <button
+                  type="button"
+                  onClick={() => setPollOptions([...pollOptions, ""])}
+                  className="text-xs text-muted-foreground"
+                >
+                  + Add option
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center justify-between border-t border-border/30 pt-3">
             <div className="flex space-x-2">
+              {/*photo upload button*/}
               <Button
                 type="button"
                 variant="ghost"
@@ -147,6 +202,21 @@ function CreatePost() {
               >
                 <ImagePlayIcon className="size-3.5 mr-1.5" />
                 GIF
+              </Button>
+              {/* add poll button */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setPostType("POLL");
+                  setShowImageUpload(false);
+                  setShowGifPicker(false);
+                  setImageUrls([]);
+                  setSelectedGif(null);
+                }}
+              >
+                Poll
               </Button>
             </div>
             <GradientButton

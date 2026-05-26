@@ -23,7 +23,8 @@ export async function syncUser() {
       data: {
         clerkId: userId,
         name: `${user.firstName || ""} ${user.lastName || ""}`,
-        username: user.username ?? user.emailAddresses[0].emailAddress.split("@")[0],
+        username:
+          user.username ?? user.emailAddresses[0].emailAddress.split("@")[0],
         email: user.emailAddresses[0].emailAddress,
         image: user.imageUrl,
       },
@@ -37,7 +38,7 @@ export async function syncUser() {
 
 export async function getUserByClerkId(clerkId: string) {
   try {
-    console.log("CLERK ID:", clerkId);
+    //console.log("CLERK ID:", clerkId);
 
     const user = await prisma.user.findUnique({
       where: {
@@ -54,7 +55,7 @@ export async function getUserByClerkId(clerkId: string) {
       },
     });
 
-    console.log("USER:", user);
+    //console.log("USER:", user);
 
     return user;
   } catch (error: any) {

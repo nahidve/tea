@@ -45,6 +45,7 @@ model Post {
 
   images PostImage[]
   gif    Gif?
+  poll   Poll?
 }
 
 model PostImage {
@@ -68,6 +69,36 @@ model Gif {
   previewUrl String?
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Poll {
+  id        String   @id @default(cuid())
+  postId    String   @unique
+  question  String
+  createdAt DateTime @default(now())
+
+  options PollOption[]
+  post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  pollId String
+  text   String
+
+  votes PollVote[]
+
+  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+}
+
+model PollVote {
+  id       String @id @default(cuid())
+  optionId String
+  userId   String
+
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, userId])
 }
 
 model Comment {

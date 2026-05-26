@@ -7,52 +7,69 @@ import { revalidatePath } from "next/cache";
 export async function createPost(
   content: string,
   images: string[],
-  gif?: {
-    gifUrl: string;
-    previewUrl?: string;
-  } | null,
+  gif?: { gifUrl: string; previewUrl?: string } | null,
+  poll?: { question: string; options: string[] } | null,
 ) {
   try {
     const userId = await getDbUserId();
 
     if (!userId) return;
 
-    const post = await prisma.post.create({
-      data: {
-        content,
-        authorId: userId,
+    const post = await prisma.$transaction(async (tx) => {
+      const newPost = await tx.post.create({
+        data: {
+          content,
+          authorId: userId,
 
-        type: gif
-          ? "GIF"
-          : images.length > 1
-            ? "CAROUSEL"
-            : images.length === 1
-              ? "IMAGE"
-              : "TEXT",
+          type: poll
+            ? "POLL"
+            : gif
+              ? "GIF"
+              : images.length > 1
+                ? "CAROUSEL"
+                : images.length === 1
+                  ? "IMAGE"
+                  : "TEXT",
+        },
+      });
 
-        ...(images.length > 0 && {
-          images: {
-            create: images.map((url, index) => ({
-              url,
-              order: index,
-            })),
+      if (images.length > 0) {
+        await tx.postImage.createMany({
+          data: images.map((url, index) => ({
+            postId: newPost.id,
+            url,
+            order: index,
+          })),
+        });
+      }
+
+      if (gif) {
+        await tx.gif.create({
+          data: {
+            postId: newPost.id,
+            gifUrl: gif.gifUrl,
+            previewUrl: gif.previewUrl,
           },
-        }),
+        });
+      }
 
-        ...(gif && {
-          gif: {
-            create: {
-              gifUrl: gif.gifUrl,
-              previewUrl: gif.previewUrl,
-            },
+      if (poll) {
+        const pollRecord = await tx.poll.create({
+          data: {
+            postId: newPost.id,
+            question: poll.question,
           },
-        }),
-      },
+        });
 
-      include: {
-        gif: true,
-        images: true,
-      },
+        await tx.pollOption.createMany({
+          data: poll.options.map((text) => ({
+            pollId: pollRecord.id,
+            text,
+          })),
+        });
+      }
+
+      return newPost;
     });
 
     revalidatePath("/"); // purge the cache for the home page
@@ -70,6 +87,19 @@ export async function getPosts() {
         createdAt: "desc",
       },
       include: {
+        poll: {
+          include: {
+            options: {
+              include: {
+                votes: {
+                  select: {
+                    userId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         gif: true,
         images: {
           orderBy: {
