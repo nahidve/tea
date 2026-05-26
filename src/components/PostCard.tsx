@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import GlassPanel from "./ui/custom/GlassPanel";
 import GradientButton from "./ui/custom/GradientButton";
 import AnimatedContainer from "./ui/custom/AnimatedContainer";
+import PostRenderer from "./post-types/PostRenderer";
 
 type Posts = Awaited<ReturnType<typeof getPosts>>;
 type Post = Posts[number];
@@ -108,7 +109,10 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                     {post.author.name}
                   </Link>
                   <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
-                    <Link href={`/profile/${post.author.username}`} className="hover:underline">
+                    <Link
+                      href={`/profile/${post.author.username}`}
+                      className="hover:underline"
+                    >
                       @{post.author.username}
                     </Link>
                     <span>•</span>
@@ -131,16 +135,8 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
             </div>
           </div>
 
-          {/* POST IMAGE */}
-          {post.image && (
-            <div className="rounded-md overflow-hidden border border-border/30 bg-muted/20 relative group/img cursor-zoom-in">
-              <img
-                src={post.image}
-                alt="Post content"
-                className="w-full h-auto object-cover max-h-[420px] transition-transform duration-500 group-hover/img:scale-[1.01]"
-              />
-            </div>
-          )}
+          {/* POST IMAGES */}
+          <PostRenderer post={post} />
 
           {/* LIKE & COMMENT BUTTONS */}
           <div className="flex items-center pt-2 space-x-2 border-t border-border/20">
@@ -155,8 +151,13 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                 }`}
                 onClick={handleLike}
               >
-                <motion.div whileTap={{ scale: 1.25 }} whileHover={{ scale: 1.03 }}>
-                  <HeartIcon className={`size-4 ${hasLiked ? "fill-current" : ""}`} />
+                <motion.div
+                  whileTap={{ scale: 1.25 }}
+                  whileHover={{ scale: 1.03 }}
+                >
+                  <HeartIcon
+                    className={`size-4 ${hasLiked ? "fill-current" : ""}`}
+                  />
                 </motion.div>
                 <span className="text-xs">{optimisticLikes}</span>
               </Button>
@@ -177,7 +178,9 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
               variant="ghost"
               size="sm"
               className={`gap-1.5 rounded-md hover:bg-blue-500/10 cursor-pointer h-8 px-2.5 text-xs font-medium ${
-                showComments ? "text-blue-500 hover:text-blue-600" : "text-muted-foreground hover:text-blue-500"
+                showComments
+                  ? "text-blue-500 hover:text-blue-600"
+                  : "text-muted-foreground hover:text-blue-500"
               }`}
               onClick={() => setShowComments((prev) => !prev)}
             >
@@ -202,7 +205,10 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                   <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
                     {/* DISPLAY COMMENTS */}
                     {post.comments.map((comment) => (
-                      <div key={comment.id} className="flex space-x-2.5 group/comment p-1.5 rounded-md hover:bg-secondary/20 transition-colors duration-150">
+                      <div
+                        key={comment.id}
+                        className="flex space-x-2.5 group/comment p-1.5 rounded-md hover:bg-secondary/20 transition-colors duration-150"
+                      >
                         <Avatar className="size-7 flex-shrink-0 border border-border/40">
                           <AvatarImage
                             src={comment.author.image ?? "/avatar.png"}
@@ -216,12 +222,17 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                             <span className="text-3xs text-muted-foreground">
                               @{comment.author.username}
                             </span>
-                            <span className="text-3xs text-muted-foreground/60">·</span>
+                            <span className="text-3xs text-muted-foreground/60">
+                              ·
+                            </span>
                             <span className="text-3xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(comment.createdAt))} ago
+                              {formatDistanceToNow(new Date(comment.createdAt))}{" "}
+                              ago
                             </span>
                           </div>
-                          <p className="text-xs text-foreground/90 mt-0.5 break-words leading-relaxed">{comment.content}</p>
+                          <p className="text-xs text-foreground/90 mt-0.5 break-words leading-relaxed">
+                            {comment.content}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -260,7 +271,10 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                   ) : (
                     <div className="flex justify-center p-3 border border-border/30 rounded-md bg-secondary/15">
                       <SignInButton mode="modal">
-                        <Button variant="outline" className="gap-2 rounded-md text-xs font-medium cursor-pointer">
+                        <Button
+                          variant="outline"
+                          className="gap-2 rounded-md text-xs font-medium cursor-pointer"
+                        >
                           <LogInIcon className="size-3.5" />
                           Sign in to comment
                         </Button>
