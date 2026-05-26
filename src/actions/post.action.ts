@@ -4,7 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { getDbUserId } from "./user.action";
 import { revalidatePath } from "next/cache";
 
-export async function createPost(content: string, image: string) {
+export async function createPost(
+  content: string,
+  images: string[],
+  gif?: {
+    gifUrl: string;
+    previewUrl?: string;
+  } | null,
+) {
   try {
     const userId = await getDbUserId();
 
@@ -13,8 +20,38 @@ export async function createPost(content: string, image: string) {
     const post = await prisma.post.create({
       data: {
         content,
-        image,
         authorId: userId,
+
+        type: gif
+          ? "GIF"
+          : images.length > 1
+            ? "CAROUSEL"
+            : images.length === 1
+              ? "IMAGE"
+              : "TEXT",
+
+        ...(images.length > 0 && {
+          images: {
+            create: images.map((url, index) => ({
+              url,
+              order: index,
+            })),
+          },
+        }),
+
+        ...(gif && {
+          gif: {
+            create: {
+              gifUrl: gif.gifUrl,
+              previewUrl: gif.previewUrl,
+            },
+          },
+        }),
+      },
+
+      include: {
+        gif: true,
+        images: true,
       },
     });
 
@@ -33,6 +70,12 @@ export async function getPosts() {
         createdAt: "desc",
       },
       include: {
+        gif: true,
+        images: {
+          orderBy: {
+            order: "asc",
+          },
+        },
         author: {
           select: {
             id: true,
@@ -152,7 +195,7 @@ export async function createComment(postId: string, content: string) {
       where: { id: postId },
       select: { authorId: true },
     });
- 
+
     if (!post) throw new Error("Post not found");
 
     // Create comment and notification in a transaction
@@ -200,7 +243,8 @@ export async function deletePost(postId: string) {
     });
 
     if (!post) throw new Error("Post not found");
-    if (post.authorId !== userId) throw new Error("Unauthorized - no delete permission");
+    if (post.authorId !== userId)
+      throw new Error("Unauthorized - no delete permission");
 
     await prisma.post.delete({
       where: { id: postId },
