@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import {prisma} from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getDbUserId } from "./user.action";
 
@@ -42,6 +42,12 @@ export async function getUserPosts(userId: string) {
         authorId: userId,
       },
       include: {
+        gif: true,
+        images: {
+          orderBy: {
+            order: "asc",
+          },
+        },
         author: {
           select: {
             id: true,
@@ -100,6 +106,12 @@ export async function getUserLikedPosts(userId: string) {
         },
       },
       include: {
+        gif: true,
+        images: {
+          orderBy: {
+            order: "asc",
+          },
+        },
         author: {
           select: {
             id: true,
