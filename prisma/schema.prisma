@@ -29,16 +29,45 @@ model User {
 }
 
 model Post {
-  id            String         @id @default(cuid())
-  authorId      String
-  content       String?
-  image         String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id       String   @id @default(cuid())
+  authorId String
+  content  String?
+  type     PostType @default(TEXT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   comments      Comment[]
   likes         Like[]
   notifications Notification[]
-  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  images PostImage[]
+  gif    Gif?
+}
+
+model PostImage {
+  id String @id @default(cuid())
+
+  postId String
+  url    String
+  order  Int
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model Gif {
+  id String @id @default(cuid())
+
+  postId String @unique
+
+  gifUrl     String
+  previewUrl String?
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
@@ -98,4 +127,14 @@ enum NotificationType {
   LIKE
   COMMENT
   FOLLOW
+}
+
+enum PostType {
+  TEXT
+  IMAGE
+  CAROUSEL
+  GIF
+  POLL
+  SONG
+  AUDIO
 }
