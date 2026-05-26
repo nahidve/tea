@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
 import { Avatar, AvatarImage } from "./ui/avatar";
 import { Textarea } from "./ui/textarea";
-import { ImageIcon, Loader2Icon, SendIcon } from "lucide-react";
+import { ImageIcon, Loader2Icon, SendIcon, ImagePlayIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { createPost } from "@/actions/post.action";
 import { toast } from "sonner";
@@ -12,25 +12,33 @@ import ImageUpload from "./ImageUpload";
 import GlassPanel from "./ui/custom/GlassPanel";
 import GradientButton from "./ui/custom/GradientButton";
 import AnimatedContainer from "./ui/custom/AnimatedContainer";
+import GifPicker from "./GifPicker";
 
 function CreatePost() {
   const { user } = useUser();
   const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [selectedGif, setSelectedGif] = useState<{
+    gifUrl: string;
+    previewUrl?: string;
+  } | null>(null);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
 
   const handleSubmit = async () => {
-    if (!content.trim() && !imageUrl) return;
+    if (!content.trim() && imageUrls.length === 0 && !selectedGif) return;
 
     setIsPosting(true);
     try {
-      const result = await createPost(content, imageUrl);
+      const result = await createPost(content, imageUrls, selectedGif);
       if (result?.success) {
         // reset the form
         setContent("");
-        setImageUrl("");
+        setImageUrls([]);
         setShowImageUpload(false);
+        setSelectedGif(null);
+        setShowGifPicker(false);
 
         toast.success("Post created successfully");
       }
@@ -60,17 +68,52 @@ function CreatePost() {
           </div>
 
           {/* handle image upload */}
-          {(showImageUpload || imageUrl) && (
-            <AnimatedContainer direction="down" distance={6} className="border border-border/40 rounded-md p-2.5 bg-secondary/15">
+          {(showImageUpload || imageUrls.length > 0) && (
+            <AnimatedContainer
+              direction="down"
+              distance={6}
+              className="border border-border/40 rounded-md p-2.5 bg-secondary/15"
+            >
               <ImageUpload
                 endpoint="imageUploader"
-                value={imageUrl}
-                onChange={(url) => {
-                  setImageUrl(url);
-                  if (!url) setShowImageUpload(false);
+                value={imageUrls}
+                onChange={(urls) => {
+                  setImageUrls(urls);
+
+                  if (urls.length === 0) {
+                    setShowImageUpload(false);
+                  }
                 }}
               />
             </AnimatedContainer>
+          )}
+
+          {showGifPicker && (
+            <AnimatedContainer
+              direction="down"
+              distance={6}
+              className="border border-border/40 rounded-md p-2.5 bg-secondary/15"
+            >
+              <GifPicker
+                onSelect={(gif) => {
+                  setSelectedGif(gif);
+
+                  setImageUrls([]);
+                  setShowImageUpload(false);
+                  setShowGifPicker(false);
+                }}
+              />
+            </AnimatedContainer>
+          )}
+
+          {selectedGif && (
+            <div className="rounded-md overflow-hidden border border-border/30">
+              <img
+                src={selectedGif.gifUrl}
+                alt="Selected GIF"
+                className="w-full max-h-[420px] object-cover"
+              />
+            </div>
           )}
 
           <div className="flex items-center justify-between border-t border-border/30 pt-3">
@@ -86,12 +129,33 @@ function CreatePost() {
                 <ImageIcon className="size-3.5 mr-1.5" />
                 Photo
               </Button>
+              {/* add gif button */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground/80 hover:text-primary hover:bg-secondary/40 rounded-md cursor-pointer h-8 px-2.5 text-xs font-medium"
+                onClick={() => {
+                  setShowGifPicker((prev) => !prev);
+
+                  if (!showGifPicker) {
+                    setImageUrls([]);
+                    setShowImageUpload(false);
+                  }
+                }}
+                disabled={isPosting}
+              >
+                <ImagePlayIcon className="size-3.5 mr-1.5" />
+                GIF
+              </Button>
             </div>
             <GradientButton
               variant="primary"
               size="sm"
               onClick={handleSubmit}
-              disabled={(!content.trim() && !imageUrl) || isPosting}
+              disabled={
+                (!content.trim() && imageUrls.length === 0) || isPosting
+              }
               loading={isPosting}
             >
               {!isPosting && (
