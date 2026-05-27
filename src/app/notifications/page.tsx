@@ -129,10 +129,10 @@ function NotificationsPage() {
                           <div className="pl-7 space-y-1.5">
                             <div className="text-xs text-muted-foreground/90 rounded-md p-2 bg-secondary/20 border border-border/30 max-w-full">
                               <p className="line-clamp-2 leading-relaxed">{notification.post.content}</p>
-                              {notification.post.image && (
+                              {((notification.post.images && notification.post.images.length > 0) || notification.post.gif) && (
                                 <div className="mt-1.5 rounded-md overflow-hidden border border-border/30 max-w-[160px]">
                                   <img
-                                    src={notification.post.image}
+                                    src={notification.post.gif?.gifUrl || notification.post.images?.[0]?.url}
                                     alt="Post preview"
                                     className="w-full h-auto object-cover max-h-[100px]"
                                   />

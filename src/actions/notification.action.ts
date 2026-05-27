@@ -25,7 +25,12 @@ export async function getNotifications() {
           select: {
             id: true,
             content: true,
-            image: true,
+            images: {
+              orderBy: {
+                order: "asc",
+              },
+            },
+            gif: true,
           },
         },
         comment: {

@@ -41,8 +41,21 @@ function CreatePost() {
       imageUrls.length === 0 &&
       !selectedGif &&
       postType !== "POLL"
-    )
-      setIsPosting(true);
+    ) {
+      return;
+    }
+
+    if (postType === "POLL") {
+      const cleanedOptions = pollOptions
+        .map((opt) => opt.trim())
+        .filter((opt) => opt.length > 0);
+
+      if (!pollQuestion.trim() || cleanedOptions.length < 2) {
+        toast.error("Poll needs a question and at least 2 options");
+        return;
+      }
+    }
+    setIsPosting(true);
     try {
       const result = await createPost(
         content,
@@ -51,7 +64,9 @@ function CreatePost() {
         postType === "POLL"
           ? {
               question: pollQuestion,
-              options: pollOptions.filter(Boolean),
+              options: pollOptions
+                .map((opt) => opt.trim())
+                .filter((opt) => opt.length > 0),
             }
           : null,
       );

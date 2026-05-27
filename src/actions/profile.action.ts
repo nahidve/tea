@@ -42,6 +42,19 @@ export async function getUserPosts(userId: string) {
         authorId: userId,
       },
       include: {
+        poll: {
+          include: {
+            options: {
+              include: {
+                votes: {
+                  select: {
+                    userId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         gif: true,
         images: {
           orderBy: {
@@ -106,6 +119,19 @@ export async function getUserLikedPosts(userId: string) {
         },
       },
       include: {
+        poll: {
+          include: {
+            options: {
+              include: {
+                votes: {
+                  select: {
+                    userId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         gif: true,
         images: {
           orderBy: {
