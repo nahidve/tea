@@ -19,6 +19,7 @@ model User {
   website              String?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
+  bookmarks            Bookmark[]
   comments             Comment[]
   following            Follows[]      @relation("followers")
   followers            Follows[]      @relation("following")
@@ -34,69 +35,64 @@ model Post {
   content  String?
   type     PostType @default(TEXT)
 
+  repostOfId String?
+  repostOf   Post?   @relation("Reposts", fields: [repostOfId], references: [id], onDelete: Cascade)
+  reposts    Post[]  @relation("Reposts")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  bookmarks     Bookmark[]
   comments      Comment[]
+  gif           Gif?
   likes         Like[]
   notifications Notification[]
+  poll          Poll?
 
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
+  author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   images PostImage[]
-  gif    Gif?
-  poll   Poll?
 }
 
 model PostImage {
-  id String @id @default(cuid())
-
+  id     String @id @default(cuid())
   postId String
   url    String
   order  Int
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
 }
 
 model Gif {
-  id String @id @default(cuid())
-
-  postId String @unique
-
+  id         String  @id @default(cuid())
+  postId     String  @unique
   gifUrl     String
   previewUrl String?
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post       Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model Poll {
-  id        String   @id @default(cuid())
-  postId    String   @unique
+  id        String       @id @default(cuid())
+  postId    String       @unique
   question  String
-  createdAt DateTime @default(now())
-
-  options PollOption[]
-  post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  options   PollOption[]
 }
 
 model PollOption {
-  id     String @id @default(cuid())
+  id     String     @id @default(cuid())
   pollId String
   text   String
-
-  votes PollVote[]
-
-  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes  PollVote[]
 }
 
 model PollVote {
-  id       String @id @default(cuid())
+  id       String     @id @default(cuid())
   optionId String
   userId   String
-
-  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@unique([optionId, userId])
 }
@@ -154,10 +150,23 @@ model Notification {
   @@index([userId, createdAt])
 }
 
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+}
+
 enum NotificationType {
   LIKE
   COMMENT
   FOLLOW
+  REPOST
 }
 
 enum PostType {

@@ -1,6 +1,6 @@
 "use client";
 
-import { BellIcon, HomeIcon, UserIcon } from "lucide-react";
+import { BellIcon, HomeIcon, UserIcon, BookmarkIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
@@ -14,13 +14,26 @@ function DesktopNavbar() {
 
   const navItems = [
     { href: "/", label: "Home", icon: HomeIcon },
+
     ...(isSignedIn
       ? [
-          { href: "/notifications", label: "Notifications", icon: BellIcon },
+          {
+            href: "/saved",
+            label: "Saved",
+            icon: BookmarkIcon,
+          },
+
+          {
+            href: "/notifications",
+            label: "Notifications",
+            icon: BellIcon,
+          },
+
           {
             href: `/profile/${
               user?.username ??
-              user?.emailAddresses[0]?.emailAddress?.split("@")[0] ?? ""
+              user?.emailAddresses[0]?.emailAddress?.split("@")[0] ??
+              ""
             }`,
             label: "Profile",
             icon: UserIcon,

@@ -86,7 +86,78 @@ export async function getPosts() {
       orderBy: {
         createdAt: "desc",
       },
+
       include: {
+        repostOf: {
+          include: {
+            poll: {
+              include: {
+                options: {
+                  include: {
+                    votes: {
+                      select: {
+                        userId: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+
+            gif: true,
+
+            images: {
+              orderBy: {
+                order: "asc",
+              },
+            },
+
+            author: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                username: true,
+              },
+            },
+
+            comments: {
+              include: {
+                author: {
+                  select: {
+                    id: true,
+                    username: true,
+                    image: true,
+                    name: true,
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+
+            likes: {
+              select: {
+                userId: true,
+              },
+            },
+
+            bookmarks: {
+              select: {
+                userId: true,
+              },
+            },
+
+            _count: {
+              select: {
+                likes: true,
+                comments: true,
+              },
+            },
+          },
+        },
+
         poll: {
           include: {
             options: {
@@ -100,12 +171,15 @@ export async function getPosts() {
             },
           },
         },
+
         gif: true,
+
         images: {
           orderBy: {
             order: "asc",
           },
         },
+
         author: {
           select: {
             id: true,
@@ -114,6 +188,7 @@ export async function getPosts() {
             username: true,
           },
         },
+
         comments: {
           include: {
             author: {
@@ -129,11 +204,19 @@ export async function getPosts() {
             createdAt: "asc",
           },
         },
+
         likes: {
           select: {
             userId: true,
           },
         },
+
+        bookmarks: {
+          select: {
+            userId: true,
+          },
+        },
+
         _count: {
           select: {
             likes: true,
@@ -147,6 +230,74 @@ export async function getPosts() {
   } catch (error) {
     console.log("Error in getPosts", error);
     throw new Error("Failed to fetch posts");
+  }
+}
+
+export async function repostPost(postId: string) {
+  try {
+    const userId = await getDbUserId();
+
+    if (!userId) return;
+
+    const existing = await prisma.post.findFirst({
+      where: {
+        authorId: userId,
+        repostOfId: postId,
+      },
+    });
+
+    if (existing) {
+      return {
+        success: false,
+        error: "Already reposted",
+      };
+    }
+
+    const originalPost = await prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        authorId: true,
+      },
+    });
+
+    if (!originalPost) {
+      return {
+        success: false,
+        error: "Post not found",
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.post.create({
+        data: {
+          authorId: userId,
+          repostOfId: postId,
+          type: "TEXT",
+        },
+      });
+
+      if (originalPost.authorId !== userId) {
+        await tx.notification.create({
+          data: {
+            type: "REPOST",
+            userId: originalPost.authorId,
+            creatorId: userId,
+            postId,
+          },
+        });
+      }
+    });
+
+    revalidatePath("/");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to repost:", error);
+
+    return {
+      success: false,
+      error: "Failed to repost",
+    };
   }
 }
 

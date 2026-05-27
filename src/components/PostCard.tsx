@@ -19,6 +19,7 @@ import {
   LogInIcon,
   MessageCircleIcon,
   SendIcon,
+  BookmarkIcon,
 } from "lucide-react";
 import { Textarea } from "./ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,6 +27,9 @@ import GlassPanel from "./ui/custom/GlassPanel";
 import GradientButton from "./ui/custom/GradientButton";
 import AnimatedContainer from "./ui/custom/AnimatedContainer";
 import PostRenderer from "./post-types/PostRenderer";
+import { toggleBookmark } from "@/actions/bookmark.action";
+import { Repeat2Icon } from "lucide-react";
+import { repostPost } from "@/actions/post.action";
 
 type Posts = Awaited<ReturnType<typeof getPosts>>;
 type Post = Posts[number];
@@ -36,10 +40,16 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
   const [isCommenting, setIsCommenting] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReposting, setIsReposting] = useState(false);
   const [hasLiked, setHasLiked] = useState(
     post.likes.some((like) => like.userId === dbUserId),
   );
   const [optimisticLikes, setOptmisticLikes] = useState(post._count.likes);
+  const [hasBookmarked, setHasBookmarked] = useState(
+    post.bookmarks.some((bookmark) => bookmark.userId === dbUserId),
+  );
+
+  const [isBookmarking, setIsBookmarking] = useState(false);
   const [showComments, setShowComments] = useState(false);
 
   const handleLike = async () => {
@@ -54,6 +64,50 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
       setHasLiked(post.likes.some((like) => like.userId === dbUserId));
     } finally {
       setIsLiking(false);
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (isBookmarking) return;
+
+    try {
+      setIsBookmarking(true);
+
+      setHasBookmarked((prev) => !prev);
+
+      const res = await toggleBookmark(post.id);
+
+      if (!res?.success) {
+        setHasBookmarked(
+          post.bookmarks.some((bookmark) => bookmark.userId === dbUserId),
+        );
+      }
+    } catch (error) {
+      setHasBookmarked(
+        post.bookmarks.some((bookmark) => bookmark.userId === dbUserId),
+      );
+    } finally {
+      setIsBookmarking(false);
+    }
+  };
+
+  const handleRepost = async () => {
+    if (isReposting) return;
+
+    try {
+      setIsReposting(true);
+
+      const res = await repostPost(post.id);
+
+      if (res?.success) {
+        toast.success("Post reposted");
+      } else {
+        toast.error(res?.error || "Failed to repost");
+      }
+    } catch (error) {
+      toast.error("Failed to repost");
+    } finally {
+      setIsReposting(false);
     }
   };
 
@@ -132,6 +186,21 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
               <p className="mt-1.5 text-sm text-foreground/95 break-words leading-relaxed whitespace-pre-wrap">
                 {post.content}
               </p>
+              {post.repostOf && (
+                <div className="mb-3 rounded-xl border border-border/30 bg-secondary/20 p-3">
+                  <div className="mb-2 text-xs text-muted-foreground">
+                    Reposted from @{post.repostOf.author.username}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm whitespace-pre-wrap">
+                      {post.repostOf.content}
+                    </p>
+
+                    <PostRenderer post={post.repostOf} dbUserId={dbUserId} />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -188,6 +257,28 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                 className={`size-4 ${showComments ? "fill-blue-500/10" : ""}`}
               />
               <span className="text-xs">{post.comments.length}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBookmark}
+              className={`gap-1.5 rounded-md hover:bg-yellow-500/10 cursor-pointer h-8 px-2.5 text-xs font-medium ${
+                hasBookmarked
+                  ? "text-yellow-500 hover:text-yellow-600"
+                  : "text-muted-foreground hover:text-yellow-500"
+              }`}
+            >
+              <BookmarkIcon
+                className={`size-4 ${hasBookmarked ? "fill-current" : ""}`}
+              />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRepost}
+              className="gap-1.5 rounded-md hover:bg-green-500/10 cursor-pointer h-8 px-2.5 text-xs font-medium text-muted-foreground hover:text-green-500"
+            >
+              <Repeat2Icon className="size-4" />
             </Button>
           </div>
 

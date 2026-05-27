@@ -8,6 +8,7 @@ import {
   MoonIcon,
   SunIcon,
   UserIcon,
+  BookmarkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +31,9 @@ function MobileNavbar() {
   const { theme, setTheme } = useTheme();
 
   const profileUsername =
-    user?.username ?? user?.emailAddresses[0]?.emailAddress?.split("@")[0] ?? "";
+    user?.username ??
+    user?.emailAddresses[0]?.emailAddress?.split("@")[0] ??
+    "";
 
   return (
     <div className="flex md:hidden items-center space-x-2">
@@ -55,9 +58,14 @@ function MobileNavbar() {
             <MenuIcon className="h-4.5 w-4.5 text-foreground" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-[280px] glass-panel border-l border-border/45">
+        <SheetContent
+          side="right"
+          className="w-[280px] glass-panel border-l border-border/45"
+        >
           <SheetHeader className="pb-4 border-b border-border/40">
-            <SheetTitle className="text-left font-mono tracking-wider text-gradient">Menu</SheetTitle>
+            <SheetTitle className="text-left font-mono tracking-wider text-gradient">
+              Menu
+            </SheetTitle>
           </SheetHeader>
           <nav className="flex flex-col space-y-3 mt-6">
             <Button
@@ -66,9 +74,13 @@ function MobileNavbar() {
               onClick={() => setShowMobileMenu(false)}
               asChild
             >
-              <Link href="/">
-                <HomeIcon className="w-4 h-4 text-muted-foreground" />
-                Home
+              <Link
+                href="/saved"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-2"
+              >
+                <BookmarkIcon className="size-4" />
+                Saved
               </Link>
             </Button>
 

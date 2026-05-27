@@ -5,10 +5,14 @@ import GifPost from "./GifPost";
 import PollPost from "./PollPost";
 
 type Posts = Awaited<ReturnType<typeof getPosts>>;
-type Post = Posts[number];
+type BasePost = Posts[number];
+
+type RenderPost = Omit<BasePost, "repostOf"> & {
+  repostOf?: Omit<BasePost, "repostOf"> | null;
+};
 
 interface PostRendererProps {
-  post: Post;
+  post: RenderPost;
   dbUserId: string | null;
 }
 

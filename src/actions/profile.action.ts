@@ -42,6 +42,75 @@ export async function getUserPosts(userId: string) {
         authorId: userId,
       },
       include: {
+        repostOf: {
+          include: {
+            poll: {
+              include: {
+                options: {
+                  include: {
+                    votes: {
+                      select: {
+                        userId: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+
+            gif: true,
+
+            images: {
+              orderBy: {
+                order: "asc",
+              },
+            },
+
+            author: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+
+            likes: {
+              select: {
+                userId: true,
+              },
+            },
+
+            bookmarks: {
+              select: {
+                userId: true,
+              },
+            },
+
+            comments: {
+              include: {
+                author: {
+                  select: {
+                    id: true,
+                    username: true,
+                    image: true,
+                    name: true,
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+
+            _count: {
+              select: {
+                likes: true,
+                comments: true,
+              },
+            },
+          },
+        },
         poll: {
           include: {
             options: {
@@ -55,12 +124,15 @@ export async function getUserPosts(userId: string) {
             },
           },
         },
+
         gif: true,
+
         images: {
           orderBy: {
             order: "asc",
           },
         },
+
         author: {
           select: {
             id: true,
@@ -69,14 +141,27 @@ export async function getUserPosts(userId: string) {
             image: true,
           },
         },
+
+        likes: {
+          select: {
+            userId: true,
+          },
+        },
+
+        bookmarks: {
+          select: {
+            userId: true,
+          },
+        },
+
         comments: {
           include: {
             author: {
               select: {
                 id: true,
-                name: true,
                 username: true,
                 image: true,
+                name: true,
               },
             },
           },
@@ -84,11 +169,7 @@ export async function getUserPosts(userId: string) {
             createdAt: "asc",
           },
         },
-        likes: {
-          select: {
-            userId: true,
-          },
-        },
+
         _count: {
           select: {
             likes: true,
@@ -119,6 +200,75 @@ export async function getUserLikedPosts(userId: string) {
         },
       },
       include: {
+        repostOf: {
+          include: {
+            poll: {
+              include: {
+                options: {
+                  include: {
+                    votes: {
+                      select: {
+                        userId: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+
+            gif: true,
+
+            images: {
+              orderBy: {
+                order: "asc",
+              },
+            },
+
+            author: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+
+            likes: {
+              select: {
+                userId: true,
+              },
+            },
+
+            bookmarks: {
+              select: {
+                userId: true,
+              },
+            },
+
+            comments: {
+              include: {
+                author: {
+                  select: {
+                    id: true,
+                    username: true,
+                    image: true,
+                    name: true,
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+
+            _count: {
+              select: {
+                likes: true,
+                comments: true,
+              },
+            },
+          },
+        },
         poll: {
           include: {
             options: {
@@ -132,12 +282,15 @@ export async function getUserLikedPosts(userId: string) {
             },
           },
         },
+
         gif: true,
+
         images: {
           orderBy: {
             order: "asc",
           },
         },
+
         author: {
           select: {
             id: true,
@@ -146,14 +299,27 @@ export async function getUserLikedPosts(userId: string) {
             image: true,
           },
         },
+
+        likes: {
+          select: {
+            userId: true,
+          },
+        },
+
+        bookmarks: {
+          select: {
+            userId: true,
+          },
+        },
+
         comments: {
           include: {
             author: {
               select: {
                 id: true,
-                name: true,
                 username: true,
                 image: true,
+                name: true,
               },
             },
           },
@@ -161,11 +327,7 @@ export async function getUserLikedPosts(userId: string) {
             createdAt: "asc",
           },
         },
-        likes: {
-          select: {
-            userId: true,
-          },
-        },
+
         _count: {
           select: {
             likes: true,
