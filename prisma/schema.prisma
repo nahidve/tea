@@ -167,6 +167,7 @@ enum NotificationType {
   COMMENT
   FOLLOW
   REPOST
+  MENTION
 }
 
 enum PostType {

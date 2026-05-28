@@ -12,8 +12,10 @@ export async function createPost(
 ) {
   try {
     const userId = await getDbUserId();
-
     if (!userId) return;
+
+    const mentions = content.match(/@([a-zA-Z0-9_]+)/g) || [];
+    const usernames = mentions.map((m) => m.slice(1).toLowerCase());
 
     const post = await prisma.$transaction(async (tx) => {
       const newPost = await tx.post.create({
@@ -32,6 +34,31 @@ export async function createPost(
                   : "TEXT",
         },
       });
+
+      const mentionedUsers = await tx.user.findMany({
+        where: {
+          username: {
+            in: usernames,
+          },
+        },
+
+        select: {
+          id: true,
+        },
+      });
+
+      if (mentionedUsers.length > 0) {
+        await tx.notification.createMany({
+          data: mentionedUsers
+            .filter((u) => u.id !== userId)
+            .map((u) => ({
+              type: "MENTION",
+              userId: u.id,
+              creatorId: userId,
+              postId: newPost.id,
+            })),
+        });
+      }
 
       if (images.length > 0) {
         await tx.postImage.createMany({
@@ -230,6 +257,165 @@ export async function getPosts() {
   } catch (error) {
     console.log("Error in getPosts", error);
     throw new Error("Failed to fetch posts");
+  }
+}
+
+export async function getPostById(postId: string) {
+  try {
+    const post = await prisma.post.findUnique({
+      where: {
+        id: postId,
+      },
+
+      include: {
+        repostOf: {
+          include: {
+            repostOf: true,
+
+            poll: {
+              include: {
+                options: {
+                  include: {
+                    votes: {
+                      select: {
+                        userId: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+
+            gif: true,
+
+            images: {
+              orderBy: {
+                order: "asc",
+              },
+            },
+
+            author: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                username: true,
+              },
+            },
+
+            comments: {
+              include: {
+                author: {
+                  select: {
+                    id: true,
+                    username: true,
+                    image: true,
+                    name: true,
+                  },
+                },
+              },
+
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+
+            likes: {
+              select: {
+                userId: true,
+              },
+            },
+
+            bookmarks: {
+              select: {
+                userId: true,
+              },
+            },
+
+            _count: {
+              select: {
+                likes: true,
+                comments: true,
+                reposts: true,
+              },
+            },
+          },
+        },
+
+        poll: {
+          include: {
+            options: {
+              include: {
+                votes: {
+                  select: {
+                    userId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+
+        gif: true,
+
+        images: {
+          orderBy: {
+            order: "asc",
+          },
+        },
+
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            username: true,
+          },
+        },
+
+        comments: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                username: true,
+                image: true,
+                name: true,
+              },
+            },
+          },
+
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+
+        likes: {
+          select: {
+            userId: true,
+          },
+        },
+
+        bookmarks: {
+          select: {
+            userId: true,
+          },
+        },
+
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+            reposts: true,
+          },
+        },
+      },
+    });
+
+    return post;
+  } catch (error) {
+    console.error("Error fetching post:", error);
+    throw new Error("Failed to fetch post");
   }
 }
 

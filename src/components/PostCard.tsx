@@ -20,6 +20,7 @@ import {
   MessageCircleIcon,
   SendIcon,
   BookmarkIcon,
+  Share2Icon,
 } from "lucide-react";
 import { Textarea } from "./ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,6 +34,26 @@ import { repostPost } from "@/actions/post.action";
 
 type Posts = Awaited<ReturnType<typeof getPosts>>;
 type Post = Posts[number];
+
+function renderContent(content: string) {
+  return content.split(/(@[a-zA-Z0-9_]+)/g).map((part, i) => {
+    if (part.startsWith("@")) {
+      const username = part.slice(1);
+
+      return (
+        <Link
+          key={i}
+          href={`/profile/${username}`}
+          className="text-primary hover:underline"
+        >
+          {part}
+        </Link>
+      );
+    }
+
+    return part;
+  });
+}
 
 function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
   const { user } = useUser();
@@ -67,6 +88,17 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      const url = `${window.location.origin}/post/${post.id}`;
+
+      await navigator.clipboard.writeText(url);
+
+      toast.success("Link copied to clipboard");
+    } catch (error) {
+      toast.error("Failed to copy link");
+    }
+  };
   const handleBookmark = async () => {
     if (isBookmarking) return;
 
@@ -184,7 +216,7 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                 )}
               </div>
               <p className="mt-1.5 text-sm text-foreground/95 break-words leading-relaxed whitespace-pre-wrap">
-                {post.content}
+                {renderContent(post.content || "")}.
               </p>
               {post.repostOf && (
                 <div className="mb-3 rounded-xl border border-border/30 bg-secondary/20 p-3">
@@ -258,6 +290,7 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
               />
               <span className="text-xs">{post.comments.length}</span>
             </Button>
+
             <Button
               variant="ghost"
               size="sm"
@@ -272,6 +305,7 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                 className={`size-4 ${hasBookmarked ? "fill-current" : ""}`}
               />
             </Button>
+
             <Button
               variant="ghost"
               size="sm"
@@ -279,6 +313,15 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
               className="gap-1.5 rounded-md hover:bg-green-500/10 cursor-pointer h-8 px-2.5 text-xs font-medium text-muted-foreground hover:text-green-500"
             >
               <Repeat2Icon className="size-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleShare}
+              className="gap-1.5 rounded-md hover:bg-cyan-500/10 cursor-pointer h-8 px-2.5 text-xs font-medium text-muted-foreground hover:text-cyan-500"
+            >
+              <Share2Icon className="size-4" />
             </Button>
           </div>
 

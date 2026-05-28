@@ -80,6 +80,35 @@ export async function getDbUserId() {
   return user.id;
 }
 
+export async function searchUsers(query: string) {
+  try {
+    if (!query.trim()) return [];
+
+    const users = await prisma.user.findMany({
+      where: {
+        username: {
+          startsWith: query.toLowerCase(),
+          mode: "insensitive",
+        },
+      },
+
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        image: true,
+      },
+
+      take: 5,
+    });
+
+    return users;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
 export async function getRandomUsers() {
   try {
     const userId = await getDbUserId();

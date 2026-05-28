@@ -13,6 +13,8 @@ import GlassPanel from "./ui/custom/GlassPanel";
 import GradientButton from "./ui/custom/GradientButton";
 import AnimatedContainer from "./ui/custom/AnimatedContainer";
 import GifPicker from "./GifPicker";
+import MentionSuggestions from "./MentionSuggestions";
+import { searchUsers } from "@/actions/user.action";
 
 function CreatePost() {
   const { user } = useUser();
@@ -30,6 +32,16 @@ function CreatePost() {
   );
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+  const [mentionQuery, setMentionQuery] = useState("");
+  type MentionUser = {
+    id: string;
+    username: string;
+    name: string | null;
+    image: string | null;
+  };
+
+  const [mentionUsers, setMentionUsers] = useState<MentionUser[]>([]);
+  const [showMentions, setShowMentions] = useState(false);
 
   const updateOption = (value: string, index: number) => {
     setPollOptions((prev) => prev.map((opt, i) => (i === index ? value : opt)));
@@ -96,13 +108,48 @@ function CreatePost() {
             <Avatar className="w-9 h-9 border border-border/40">
               <AvatarImage src={user?.imageUrl || "/avatar.png"} />
             </Avatar>
-            <Textarea
-              placeholder="What's on your mind?"
-              className="min-h-[80px] resize-none border-none focus-visible:ring-0 p-0 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/75"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              disabled={isPosting}
-            />
+            <div className="flex-1 relative">
+              <Textarea
+                placeholder="What's on your mind?"
+                className="min-h-[80px] resize-none border-none focus-visible:ring-0 p-0 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/75"
+                value={content}
+                onChange={async (e) => {
+                  const value = e.target.value;
+
+                  setContent(value);
+
+                  const match = value.match(/@(\w+)$/);
+
+                  if (match) {
+                    const query = match[1];
+
+                    setMentionQuery(query);
+
+                    const users = await searchUsers(query);
+
+                    setMentionUsers(users);
+
+                    setShowMentions(true);
+                  } else {
+                    setShowMentions(false);
+                  }
+                }}
+                disabled={isPosting}
+              />
+
+              {showMentions && (
+                <MentionSuggestions
+                  users={mentionUsers}
+                  onSelect={(username) => {
+                    const updated = content.replace(/@(\w+)$/, `@${username} `);
+
+                    setContent(updated);
+
+                    setShowMentions(false);
+                  }}
+                />
+              )}
+            </div>
           </div>
 
           {/* handle image upload */}
