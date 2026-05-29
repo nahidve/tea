@@ -15,6 +15,8 @@ import { toast } from "sonner";
 
 import { motion, AnimatePresence } from "framer-motion";
 
+import OnlineIndicator from "./OnlineIndicator";
+
 import {
   HeartIcon,
   MessageCircleIcon,
@@ -209,11 +211,15 @@ export default function NotificationsClient({
                         : "hover:bg-secondary/15"
                     }`}
                   >
-                    <Avatar className="mt-0.5 border border-border/40 shrink-0 w-8 h-8">
-                      <AvatarImage
-                        src={notification.creator.image ?? "/avatar.png"}
-                      />
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="mt-0.5 border border-border/40 shrink-0 w-8 h-8">
+                        <AvatarImage
+                          src={notification.creator.image ?? "/avatar.png"}
+                        />
+                      </Avatar>
+
+                      <OnlineIndicator userId={notification.creator.id} />
+                    </div>
 
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">

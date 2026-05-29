@@ -31,6 +31,7 @@ import PostRenderer from "./post-types/PostRenderer";
 import { toggleBookmark } from "@/actions/bookmark.action";
 import { Repeat2Icon } from "lucide-react";
 import { repostPost } from "@/actions/post.action";
+import OnlineIndicator from "./OnlineIndicator";
 
 type Posts = Awaited<ReturnType<typeof getPosts>>;
 type Post = Posts[number];
@@ -179,9 +180,15 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
         <div className="p-4 space-y-3.5">
           <div className="flex space-x-3">
             <Link href={`/profile/${post.author.username}`}>
-              <Avatar className="size-9 border border-border/40 hover:opacity-90 transition-opacity">
-                <AvatarImage src={post.author.image ?? "/avatar.png"} />
-              </Avatar>
+              <div className="relative">
+                <Avatar className="size-9 border border-border/40 hover:opacity-90 transition-opacity">
+                  <AvatarImage src={post.author.image ?? "/avatar.png"} />
+                </Avatar>
+
+                <div className="absolute -bottom-0.5 -right-0.5">
+                  <OnlineIndicator userId={post.author.id} />
+                </div>
+              </div>
             </Link>
 
             {/* POST HEADER & TEXT CONTENT */}
