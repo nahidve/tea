@@ -3,7 +3,11 @@
 import { prisma } from "@/lib/prisma";
 import { getDbUserId } from "./user.action";
 import { revalidatePath } from "next/cache";
+import { pusherServer } from "@/lib/pusher";
 
+/* -----------------------------
+   CREATE POST
+------------------------------ */
 export async function createPost(
   content: string,
   images: string[],
@@ -17,12 +21,15 @@ export async function createPost(
     const mentions = content.match(/@([a-zA-Z0-9_]+)/g) || [];
     const usernames = mentions.map((m) => m.slice(1).toLowerCase());
 
-    const post = await prisma.$transaction(async (tx) => {
+    let createdPost: any;
+    let mentionedUserIds: string[] = [];
+
+    await prisma.$transaction(async (tx) => {
+      /* 1. Create post */
       const newPost = await tx.post.create({
         data: {
           content,
           authorId: userId,
-
           type: poll
             ? "POLL"
             : gif
@@ -35,31 +42,33 @@ export async function createPost(
         },
       });
 
+      createdPost = newPost;
+
+      /* 2. Resolve mentions */
       const mentionedUsers = await tx.user.findMany({
         where: {
-          username: {
-            in: usernames,
-          },
+          username: { in: usernames },
         },
-
-        select: {
-          id: true,
-        },
+        select: { id: true },
       });
 
-      if (mentionedUsers.length > 0) {
+      mentionedUserIds = mentionedUsers
+        .filter((u) => u.id !== userId)
+        .map((u) => u.id);
+
+      /* 3. Create notifications */
+      if (mentionedUserIds.length > 0) {
         await tx.notification.createMany({
-          data: mentionedUsers
-            .filter((u) => u.id !== userId)
-            .map((u) => ({
-              type: "MENTION",
-              userId: u.id,
-              creatorId: userId,
-              postId: newPost.id,
-            })),
+          data: mentionedUserIds.map((id) => ({
+            type: "MENTION",
+            userId: id,
+            creatorId: userId,
+            postId: newPost.id,
+          })),
         });
       }
 
+      /* 4. Images */
       if (images.length > 0) {
         await tx.postImage.createMany({
           data: images.map((url, index) => ({
@@ -70,6 +79,7 @@ export async function createPost(
         });
       }
 
+      /* 5. GIF */
       if (gif) {
         await tx.gif.create({
           data: {
@@ -80,6 +90,7 @@ export async function createPost(
         });
       }
 
+      /* 6. Poll */
       if (poll) {
         const pollRecord = await tx.poll.create({
           data: {
@@ -95,25 +106,39 @@ export async function createPost(
           })),
         });
       }
-
-      return newPost;
     });
 
-    revalidatePath("/"); // purge the cache for the home page
-    return { success: true, post };
+    /* -----------------------------
+       REALTIME PUSH (PUSHER)
+       OUTSIDE TRANSACTION
+    ------------------------------ */
+    if (mentionedUserIds.length > 0) {
+      await Promise.all(
+        mentionedUserIds.map((id) =>
+          pusherServer.trigger(`user-${id}`, "notification", {
+            type: "MENTION",
+            postId: createdPost.id,
+            creatorId: userId,
+          }),
+        ),
+      );
+    }
+
+    revalidatePath("/");
+    return { success: true, post: createdPost };
   } catch (error) {
     console.error("Failed to create post:", error);
     return { success: false, error: "Failed to create post" };
   }
 }
 
+/* -----------------------------
+   GET POSTS
+------------------------------ */
 export async function getPosts() {
   try {
     const posts = await prisma.post.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-
+      orderBy: { createdAt: "desc" },
       include: {
         repostOf: {
           include: {
@@ -121,24 +146,13 @@ export async function getPosts() {
               include: {
                 options: {
                   include: {
-                    votes: {
-                      select: {
-                        userId: true,
-                      },
-                    },
+                    votes: { select: { userId: true } },
                   },
                 },
               },
             },
-
             gif: true,
-
-            images: {
-              orderBy: {
-                order: "asc",
-              },
-            },
-
+            images: { orderBy: { order: "asc" } },
             author: {
               select: {
                 id: true,
@@ -147,7 +161,6 @@ export async function getPosts() {
                 username: true,
               },
             },
-
             comments: {
               include: {
                 author: {
@@ -159,54 +172,24 @@ export async function getPosts() {
                   },
                 },
               },
-              orderBy: {
-                createdAt: "asc",
-              },
+              orderBy: { createdAt: "asc" },
             },
-
-            likes: {
-              select: {
-                userId: true,
-              },
-            },
-
-            bookmarks: {
-              select: {
-                userId: true,
-              },
-            },
-
-            _count: {
-              select: {
-                likes: true,
-                comments: true,
-              },
-            },
+            likes: { select: { userId: true } },
+            bookmarks: { select: { userId: true } },
+            _count: { select: { likes: true, comments: true } },
           },
         },
-
         poll: {
           include: {
             options: {
               include: {
-                votes: {
-                  select: {
-                    userId: true,
-                  },
-                },
+                votes: { select: { userId: true } },
               },
             },
           },
         },
-
         gif: true,
-
-        images: {
-          orderBy: {
-            order: "asc",
-          },
-        },
-
+        images: { orderBy: { order: "asc" } },
         author: {
           select: {
             id: true,
@@ -215,7 +198,6 @@ export async function getPosts() {
             username: true,
           },
         },
-
         comments: {
           include: {
             author: {
@@ -227,29 +209,11 @@ export async function getPosts() {
               },
             },
           },
-          orderBy: {
-            createdAt: "asc",
-          },
+          orderBy: { createdAt: "asc" },
         },
-
-        likes: {
-          select: {
-            userId: true,
-          },
-        },
-
-        bookmarks: {
-          select: {
-            userId: true,
-          },
-        },
-
-        _count: {
-          select: {
-            likes: true,
-            comments: true,
-          },
-        },
+        likes: { select: { userId: true } },
+        bookmarks: { select: { userId: true } },
+        _count: { select: { likes: true, comments: true } },
       },
     });
 
@@ -260,40 +224,28 @@ export async function getPosts() {
   }
 }
 
+/* -----------------------------
+   GET POST BY ID
+------------------------------ */
 export async function getPostById(postId: string) {
   try {
     const post = await prisma.post.findUnique({
-      where: {
-        id: postId,
-      },
-
+      where: { id: postId },
       include: {
         repostOf: {
           include: {
             repostOf: true,
-
             poll: {
               include: {
                 options: {
                   include: {
-                    votes: {
-                      select: {
-                        userId: true,
-                      },
-                    },
+                    votes: { select: { userId: true } },
                   },
                 },
               },
             },
-
             gif: true,
-
-            images: {
-              orderBy: {
-                order: "asc",
-              },
-            },
-
+            images: { orderBy: { order: "asc" } },
             author: {
               select: {
                 id: true,
@@ -302,7 +254,6 @@ export async function getPostById(postId: string) {
                 username: true,
               },
             },
-
             comments: {
               include: {
                 author: {
@@ -314,56 +265,26 @@ export async function getPostById(postId: string) {
                   },
                 },
               },
-
-              orderBy: {
-                createdAt: "asc",
-              },
+              orderBy: { createdAt: "asc" },
             },
-
-            likes: {
-              select: {
-                userId: true,
-              },
-            },
-
-            bookmarks: {
-              select: {
-                userId: true,
-              },
-            },
-
+            likes: { select: { userId: true } },
+            bookmarks: { select: { userId: true } },
             _count: {
-              select: {
-                likes: true,
-                comments: true,
-                reposts: true,
-              },
+              select: { likes: true, comments: true, reposts: true },
             },
           },
         },
-
         poll: {
           include: {
             options: {
               include: {
-                votes: {
-                  select: {
-                    userId: true,
-                  },
-                },
+                votes: { select: { userId: true } },
               },
             },
           },
         },
-
         gif: true,
-
-        images: {
-          orderBy: {
-            order: "asc",
-          },
-        },
-
+        images: { orderBy: { order: "asc" } },
         author: {
           select: {
             id: true,
@@ -372,7 +293,6 @@ export async function getPostById(postId: string) {
             username: true,
           },
         },
-
         comments: {
           include: {
             author: {
@@ -384,30 +304,12 @@ export async function getPostById(postId: string) {
               },
             },
           },
-
-          orderBy: {
-            createdAt: "asc",
-          },
+          orderBy: { createdAt: "asc" },
         },
-
-        likes: {
-          select: {
-            userId: true,
-          },
-        },
-
-        bookmarks: {
-          select: {
-            userId: true,
-          },
-        },
-
+        likes: { select: { userId: true } },
+        bookmarks: { select: { userId: true } },
         _count: {
-          select: {
-            likes: true,
-            comments: true,
-            reposts: true,
-          },
+          select: { likes: true, comments: true, reposts: true },
         },
       },
     });
@@ -419,10 +321,12 @@ export async function getPostById(postId: string) {
   }
 }
 
+/* -----------------------------
+   REPOST
+------------------------------ */
 export async function repostPost(postId: string) {
   try {
     const userId = await getDbUserId();
-
     if (!userId) return;
 
     const existing = await prisma.post.findFirst({
@@ -463,14 +367,36 @@ export async function repostPost(postId: string) {
       });
 
       if (originalPost.authorId !== userId) {
-        await tx.notification.create({
+        const notification = await tx.notification.create({
           data: {
             type: "REPOST",
             userId: originalPost.authorId,
             creatorId: userId,
             postId,
           },
+          include: {
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+            post: {
+              select: {
+                id: true,
+                content: true,
+              },
+            },
+          },
         });
+
+        await pusherServer.trigger(
+          `user-${originalPost.authorId}`,
+          "notification",
+          notification,
+        );
       }
     });
 
@@ -486,13 +412,14 @@ export async function repostPost(postId: string) {
     };
   }
 }
-
+/* -----------------------------
+   LIKE
+------------------------------ */
 export async function toggleLike(postId: string) {
   try {
     const userId = await getDbUserId();
     if (!userId) return;
 
-    // check if like exists
     const existingLike = await prisma.like.findUnique({
       where: {
         userId_postId: {
@@ -510,7 +437,6 @@ export async function toggleLike(postId: string) {
     if (!post) throw new Error("Post not found");
 
     if (existingLike) {
-      // unlike
       await prisma.like.delete({
         where: {
           userId_postId: {
@@ -519,43 +445,68 @@ export async function toggleLike(postId: string) {
           },
         },
       });
-    } else {
-      // like and create notification (only if liking someone else's post)
-      await prisma.$transaction([
-        prisma.like.create({
-          data: {
-            userId,
-            postId,
-          },
-        }),
-        ...(post.authorId !== userId
-          ? [
-              prisma.notification.create({
-                data: {
-                  type: "LIKE",
-                  userId: post.authorId, // recipient (post author)
-                  creatorId: userId, // person who liked
-                  postId,
-                },
-              }),
-            ]
-          : []),
-      ]);
+
+      return { success: true };
     }
 
-    revalidatePath("/");
+    // LIKE + NOTIFICATION + PUSHER
+    await prisma.$transaction(async (tx) => {
+      await tx.like.create({
+        data: {
+          userId,
+          postId,
+        },
+      });
+
+      if (post.authorId !== userId) {
+        const notification = await tx.notification.create({
+          data: {
+            type: "LIKE",
+            userId: post.authorId,
+            creatorId: userId,
+            postId,
+          },
+          include: {
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+            post: {
+              select: {
+                id: true,
+                content: true,
+              },
+            },
+          },
+        });
+        console.log("PUSHER TRIGGER →", post.authorId);
+
+        await pusherServer.trigger(
+          `user-${post.authorId}`,
+          "notification",
+          notification,
+        );
+      }
+    });
+
     return { success: true };
   } catch (error) {
     console.error("Failed to toggle like:", error);
     return { success: false, error: "Failed to toggle like" };
   }
 }
-
+/* -----------------------------
+   COMMENT
+------------------------------ */
 export async function createComment(postId: string, content: string) {
   try {
     const userId = await getDbUserId();
-
     if (!userId) return;
+
     if (!content) throw new Error("Content is required");
 
     const post = await prisma.post.findUnique({
@@ -565,9 +516,7 @@ export async function createComment(postId: string, content: string) {
 
     if (!post) throw new Error("Post not found");
 
-    // Create comment and notification in a transaction
     const [comment] = await prisma.$transaction(async (tx) => {
-      // Create comment first
       const newComment = await tx.comment.create({
         data: {
           content,
@@ -576,9 +525,8 @@ export async function createComment(postId: string, content: string) {
         },
       });
 
-      // Create notification if commenting on someone else's post
       if (post.authorId !== userId) {
-        await tx.notification.create({
+        const notification = await tx.notification.create({
           data: {
             type: "COMMENT",
             userId: post.authorId,
@@ -586,13 +534,41 @@ export async function createComment(postId: string, content: string) {
             postId,
             commentId: newComment.id,
           },
+          include: {
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+              },
+            },
+            post: {
+              select: {
+                id: true,
+                content: true,
+              },
+            },
+            comment: {
+              select: {
+                id: true,
+                content: true,
+              },
+            },
+          },
         });
+
+        await pusherServer.trigger(
+          `user-${post.authorId}`,
+          "notification",
+          notification,
+        );
       }
 
       return [newComment];
     });
 
-    revalidatePath(`/`);
+    revalidatePath("/");
     return { success: true, comment };
   } catch (error) {
     console.error("Failed to create comment:", error);
@@ -600,6 +576,9 @@ export async function createComment(postId: string, content: string) {
   }
 }
 
+/* -----------------------------
+   DELETE POST
+------------------------------ */
 export async function deletePost(postId: string) {
   try {
     const userId = await getDbUserId();
@@ -613,11 +592,9 @@ export async function deletePost(postId: string) {
     if (post.authorId !== userId)
       throw new Error("Unauthorized - no delete permission");
 
-    await prisma.post.delete({
-      where: { id: postId },
-    });
+    await prisma.post.delete({ where: { id: postId } });
 
-    revalidatePath("/"); // purge the cache
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete post:", error);

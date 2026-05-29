@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getDbUserId } from "./user.action";
+import { pusherServer } from "@/lib/pusher";
 
 export async function getNotifications() {
   try {
@@ -45,8 +46,10 @@ export async function getNotifications() {
         createdAt: "desc",
       },
     });
-
-    return notifications;
+    return notifications.map((n) => ({
+      ...n,
+      createdAt: n.createdAt.toISOString(),
+    }));
   } catch (error) {
     console.error("Error fetching notifications:", error);
     throw new Error("Failed to fetch notifications");
@@ -71,4 +74,8 @@ export async function markNotificationsAsRead(notificationIds: string[]) {
     console.error("Error marking notifications as read:", error);
     return { success: false };
   }
+}
+
+export async function sendRealTimeNotification(userId: string, payload: any) {
+  await pusherServer.trigger(`user-${userId}`, "notification", payload);
 }

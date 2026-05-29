@@ -36,3 +36,8 @@ export function getNotificationText(notification: NotificationData) {
 export function getNotificationPreview(notification: NotificationData) {
   return notification.post?.content || null;
 }
+
+import { pusherServer } from "./pusher";
+export async function sendNotification(userId: string, payload: any) {
+  await pusherServer.trigger(`user-${userId}`, "notification", payload);
+}
