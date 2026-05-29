@@ -8,25 +8,28 @@ datasource db {
 }
 
 model User {
-  id                   String         @id @default(cuid())
-  email                String         @unique
-  username             String         @unique
-  clerkId              String         @unique
-  name                 String?
-  bio                  String?
-  image                String?
-  location             String?
-  website              String?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  bookmarks            Bookmark[]
-  comments             Comment[]
-  following            Follows[]      @relation("followers")
-  followers            Follows[]      @relation("following")
-  like                 Like[]
-  notificationsCreated Notification[] @relation("notificationCreator")
-  notifications        Notification[] @relation("userNotifications")
-  posts                Post[]
+  id                       String                    @id @default(cuid())
+  email                    String                    @unique
+  username                 String                    @unique
+  clerkId                  String                    @unique
+  name                     String?
+  bio                      String?
+  image                    String?
+  location                 String?
+  website                  String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  bookmarks                Bookmark[]
+  comments                 Comment[]
+  following                Follows[]                 @relation("followers")
+  followers                Follows[]                 @relation("following")
+  like                     Like[]
+  notificationsCreated     Notification[]            @relation("notificationCreator")
+  notifications            Notification[]            @relation("userNotifications")
+  posts                    Post[]
+  conversationParticipants ConversationParticipant[]
+  messages                 Message[]
+  messageSeens             MessageSeen[]
 }
 
 model Post {
@@ -160,6 +163,54 @@ model Bookmark {
 
   @@unique([userId, postId])
   @@index([userId])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id String @id @default(cuid())
+
+  conversationId String
+  userId         String
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  senderId       String
+  conversationId String
+
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  seenBy MessageSeen[]
+}
+
+model MessageSeen {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  messageId String
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId])
 }
 
 enum NotificationType {

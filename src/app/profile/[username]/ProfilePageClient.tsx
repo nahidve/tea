@@ -39,6 +39,7 @@ import GlassPanel from "@/components/ui/custom/GlassPanel";
 import StatCard from "@/components/ui/custom/StatCard";
 import GradientButton from "@/components/ui/custom/GradientButton";
 import AnimatedContainer from "@/components/ui/custom/AnimatedContainer";
+import MessageButton from "@/components/MessageButton";
 
 type User = Awaited<ReturnType<typeof getProfileByUsername>>;
 type Posts = Awaited<ReturnType<typeof getUserPosts>>;
@@ -88,7 +89,11 @@ function ProfilePageClient({
       setIsUpdatingFollow(true);
       await toggleFollow(user.id);
       setIsFollowing(!isFollowing);
-      toast.success(isFollowing ? `Unfollowed @${user.username}` : `Followed @${user.username}`);
+      toast.success(
+        isFollowing
+          ? `Unfollowed @${user.username}`
+          : `Followed @${user.username}`,
+      );
     } catch (error) {
       toast.error("Failed to update follow status");
     } finally {
@@ -117,7 +122,9 @@ function ProfilePageClient({
               <h1 className="mt-3 text-xl font-bold tracking-tight text-gradient">
                 {user.name ?? user.username}
               </h1>
-              <p className="text-xs text-muted-foreground/90 font-medium">@{user.username}</p>
+              <p className="text-xs text-muted-foreground/90 font-medium">
+                @{user.username}
+              </p>
               {user.bio && (
                 <p className="mt-2.5 text-xs text-foreground/80 max-w-md italic">
                   "{user.bio}"
@@ -126,9 +133,18 @@ function ProfilePageClient({
 
               {/* PROFILE STATS */}
               <div className="w-full mt-4 grid grid-cols-3 gap-2">
-                <StatCard value={user._count.following.toLocaleString()} label="Following" />
-                <StatCard value={user._count.followers.toLocaleString()} label="Followers" />
-                <StatCard value={user._count.posts.toLocaleString()} label="Posts" />
+                <StatCard
+                  value={user._count.following.toLocaleString()}
+                  label="Following"
+                />
+                <StatCard
+                  value={user._count.followers.toLocaleString()}
+                  label="Followers"
+                />
+                <StatCard
+                  value={user._count.posts.toLocaleString()}
+                  label="Posts"
+                />
               </div>
 
               {/* "FOLLOW & EDIT PROFILE" BUTTONS */}
@@ -150,25 +166,29 @@ function ProfilePageClient({
                     Edit Profile
                   </GradientButton>
                 ) : (
-                  <GradientButton
-                    variant={isFollowing ? "secondary" : "primary"}
-                    className="w-full py-2"
-                    onClick={handleFollow}
-                    disabled={isUpdatingFollow}
-                    loading={isUpdatingFollow}
-                  >
-                    {isFollowing ? (
-                      <>
-                        <UserXIcon className="size-3.5 mr-1.5" />
-                        Unfollow
-                      </>
-                    ) : (
-                      <>
-                        <UserPlusIcon className="size-3.5 mr-1.5" />
-                        Follow
-                      </>
-                    )}
-                  </GradientButton>
+                  <div className="flex gap-2">
+                    <GradientButton
+                      variant={isFollowing ? "secondary" : "primary"}
+                      className="flex-1 py-2"
+                      onClick={handleFollow}
+                      disabled={isUpdatingFollow}
+                      loading={isUpdatingFollow}
+                    >
+                      {isFollowing ? (
+                        <>
+                          <UserXIcon className="size-3.5 mr-1.5" />
+                          Unfollow
+                        </>
+                      ) : (
+                        <>
+                          <UserPlusIcon className="size-3.5 mr-1.5" />
+                          Follow
+                        </>
+                      )}
+                    </GradientButton>
+
+                    <MessageButton userId={user.id} />
+                  </div>
                 )}
               </div>
 
@@ -237,7 +257,10 @@ function ProfilePageClient({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="posts" className="mt-0 focus-visible:outline-none">
+            <TabsContent
+              value="posts"
+              className="mt-0 focus-visible:outline-none"
+            >
               <div className="space-y-4">
                 {posts.length > 0 ? (
                   posts.map((post) => (
@@ -251,7 +274,10 @@ function ProfilePageClient({
               </div>
             </TabsContent>
 
-            <TabsContent value="likes" className="mt-0 focus-visible:outline-none">
+            <TabsContent
+              value="likes"
+              className="mt-0 focus-visible:outline-none"
+            >
               <div className="space-y-4">
                 {likedPosts.length > 0 ? (
                   likedPosts.map((post) => (
@@ -270,11 +296,15 @@ function ProfilePageClient({
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
           <DialogContent className="sm:max-w-[480px] glass-panel border border-border/40">
             <DialogHeader className="pb-3 border-b border-border/30">
-              <DialogTitle className="text-left font-bold tracking-tight text-gradient">Edit Profile</DialogTitle>
+              <DialogTitle className="text-left font-bold tracking-tight text-gradient">
+                Edit Profile
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-3.5 py-3.5 text-xs sm:text-sm">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">Name</Label>
+                <Label className="text-xs font-semibold text-foreground">
+                  Name
+                </Label>
                 <Input
                   name="name"
                   value={editForm.name}
@@ -286,7 +316,9 @@ function ProfilePageClient({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">Bio</Label>
+                <Label className="text-xs font-semibold text-foreground">
+                  Bio
+                </Label>
                 <Textarea
                   name="bio"
                   value={editForm.bio}
@@ -298,7 +330,9 @@ function ProfilePageClient({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">Location</Label>
+                <Label className="text-xs font-semibold text-foreground">
+                  Location
+                </Label>
                 <Input
                   name="location"
                   value={editForm.location}
@@ -310,7 +344,9 @@ function ProfilePageClient({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">Website</Label>
+                <Label className="text-xs font-semibold text-foreground">
+                  Website
+                </Label>
                 <Input
                   name="website"
                   value={editForm.website}
@@ -324,7 +360,12 @@ function ProfilePageClient({
             </div>
             <div className="flex justify-end gap-2 pt-3 border-t border-border/30">
               <DialogClose asChild>
-                <Button variant="outline" className="rounded-md text-xs font-medium h-8.5 px-3.5 cursor-pointer">Cancel</Button>
+                <Button
+                  variant="outline"
+                  className="rounded-md text-xs font-medium h-8.5 px-3.5 cursor-pointer"
+                >
+                  Cancel
+                </Button>
               </DialogClose>
               <GradientButton
                 variant="primary"

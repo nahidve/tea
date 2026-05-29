@@ -1,12 +1,19 @@
 "use client";
 
-import { BellIcon, HomeIcon, UserIcon, BookmarkIcon } from "lucide-react";
+import {
+  BellIcon,
+  HomeIcon,
+  UserIcon,
+  BookmarkIcon,
+  MessageCircleIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import ModeToggle from "./ModeToggle";
 import { motion } from "framer-motion";
 import GradientButton from "./ui/custom/GradientButton";
+import { SearchIcon } from "lucide-react";
 
 function DesktopNavbar() {
   const { user, isSignedIn } = useUser();
@@ -17,6 +24,11 @@ function DesktopNavbar() {
 
     ...(isSignedIn
       ? [
+          {
+            label: "Search",
+            href: "/search",
+            icon: SearchIcon,
+          },
           {
             href: "/saved",
             label: "Saved",
@@ -37,6 +49,11 @@ function DesktopNavbar() {
             }`,
             label: "Profile",
             icon: UserIcon,
+          },
+          {
+            label: "Messages",
+            href: "/messages",
+            icon: MessageCircleIcon,
           },
         ]
       : []),

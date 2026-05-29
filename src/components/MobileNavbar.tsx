@@ -23,6 +23,7 @@ import { useAuth, useUser, SignInButton, SignOutButton } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import GradientButton from "./ui/custom/GradientButton";
+import { MessageCircleIcon } from "lucide-react";
 
 function MobileNavbar() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -96,6 +97,18 @@ function MobileNavbar() {
                     <BellIcon className="w-4 h-4 text-muted-foreground" />
                     Notifications
                   </Link>
+
+                  <Button
+                    variant="ghost"
+                    className="flex items-center gap-3 justify-start rounded-md hover:bg-secondary/60 text-sm font-semibold transition-all cursor-pointer"
+                    onClick={() => setShowMobileMenu(false)}
+                    asChild
+                  >
+                    <Link href="/messages">
+                      <MessageCircleIcon className="w-4 h-4 text-muted-foreground" />
+                      Messages
+                    </Link>
+                  </Button>
                 </Button>
                 <Button
                   variant="ghost"
