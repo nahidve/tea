@@ -140,6 +140,16 @@ export async function sendMessage(conversationId: string, content: string) {
   }
 }
 
+export async function sendTyping(conversationId: string) {
+  const userId = await getDbUserId();
+
+  if (!userId) return;
+
+  await pusherServer.trigger(`conversation-${conversationId}`, "typing", {
+    userId,
+  });
+}
+
 /* ----------------------------------------
    GET CONVERSATIONS
 ----------------------------------------- */

@@ -5,6 +5,7 @@ import { getPusherClient } from "@/lib/pusher-client";
 import { formatDistanceToNow } from "date-fns";
 import { SendIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { sendTyping } from "@/actions/message.action";
 
 type Message = {
   id: string;
@@ -36,41 +37,59 @@ export default function ChatClient({
 
   const [isSending, setIsSending] = useState(false);
 
+  const [isTyping, setIsTyping] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  /* AUTO SCROLL */
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  const channelRef = useRef<any>(null);
+
+  /* AUTO SCROLL */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
     });
   }, [messages]);
 
-  /* PUSHER REALTIME */
-
+  /* INIT PUSHER ONCE */
   useEffect(() => {
     const pusher = getPusherClient();
 
     const channel = pusher.subscribe(`conversation-${conversationId}`);
 
+    channelRef.current = channel;
+
+    /* NEW MESSAGE */
     channel.bind("new-message", (message: Message) => {
       setMessages((prev) => {
         const exists = prev.some((m) => m.id === message.id);
-
         if (exists) return prev;
 
         return [...prev, message];
       });
     });
 
+    /* TYPING */
+    channel.bind("typing", (data: any) => {
+      if (data.userId === currentUserId) return;
+
+      setIsTyping(true);
+
+      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+
+      typingTimeout.current = setTimeout(() => {
+        setIsTyping(false);
+      }, 1200);
+    });
+
     return () => {
       channel.unbind_all();
       pusher.unsubscribe(`conversation-${conversationId}`);
     };
-  }, [conversationId]);
+  }, [conversationId, currentUserId]);
 
-  /* SEND */
-
+  /* SEND MESSAGE */
   const handleSend = async () => {
     if (!newMessage.trim()) return;
 
@@ -82,8 +101,6 @@ export default function ChatClient({
       if (!result.success) return;
 
       setNewMessage("");
-    } catch (error) {
-      console.error(error);
     } finally {
       setIsSending(false);
     }
@@ -92,7 +109,6 @@ export default function ChatClient({
   return (
     <div className="flex flex-col h-full">
       {/* MESSAGES */}
-
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((message) => {
           const isOwn = message.sender.id === currentUserId;
@@ -125,15 +141,24 @@ export default function ChatClient({
           );
         })}
 
+        {isTyping && (
+          <div className="text-xs text-muted-foreground animate-pulse px-2">
+            typing...
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
       {/* INPUT */}
-
       <div className="border-t border-border p-3 flex items-center gap-2">
         <input
           value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
+          onChange={(e) => {
+            setNewMessage(e.target.value);
+
+            sendTyping(conversationId);
+          }}
           placeholder="Type a message..."
           className="flex-1 bg-secondary rounded-xl px-4 py-2 text-sm outline-none"
           onKeyDown={(e) => {
