@@ -113,12 +113,36 @@ export async function createPost(
        OUTSIDE TRANSACTION
     ------------------------------ */
     if (mentionedUserIds.length > 0) {
+      const creator = await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          image: true,
+        },
+      });
+
       await Promise.all(
         mentionedUserIds.map((id) =>
           pusherServer.trigger(`user-${id}`, "notification", {
+            id: crypto.randomUUID(),
             type: "MENTION",
-            postId: createdPost.id,
-            creatorId: userId,
+            createdAt: new Date().toISOString(),
+            read: false,
+
+            creator,
+
+            post: {
+              id: createdPost.id,
+              content: createdPost.content,
+              images: [],
+              gif: null,
+            },
+
+            comment: null,
           }),
         ),
       );
